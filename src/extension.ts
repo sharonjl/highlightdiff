@@ -2,15 +2,27 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { DecorationManager } from "./decorationManager";
 import { BlameManager } from "./blameManager";
-import { getChangedLines, listBranches } from "./gitDiff";
+import { getChangedLines, listBranches, detectTargetBranch } from "./gitDiff";
 
 let decorationManager: DecorationManager;
 let blameManager: BlameManager;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 let enabled = true;
+let resolvedTargetBranch: string | undefined;
 
 function getConfig() {
   return vscode.workspace.getConfiguration("highlightdiff");
+}
+
+async function resolveTargetBranch(workspaceRoot: string): Promise<string> {
+  const configured = getConfig().get<string>("targetBranch", "auto");
+  if (configured !== "auto") {
+    return configured;
+  }
+  if (!resolvedTargetBranch) {
+    resolvedTargetBranch = await detectTargetBranch(workspaceRoot);
+  }
+  return resolvedTargetBranch;
 }
 
 async function updateDecorations(editor: vscode.TextEditor): Promise<void> {
@@ -28,7 +40,7 @@ async function updateDecorations(editor: vscode.TextEditor): Promise<void> {
     return;
   }
 
-  const targetBranch = getConfig().get<string>("targetBranch", "main");
+  const targetBranch = await resolveTargetBranch(workspaceFolder.uri.fsPath);
   const filePath = path.relative(workspaceFolder.uri.fsPath, editor.document.uri.fsPath);
 
   const diffs = await getChangedLines(workspaceFolder.uri.fsPath, filePath, targetBranch);
@@ -77,9 +89,12 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
-  // Watch .git/HEAD for branch switches
+  // Watch .git/HEAD for branch switches — invalidate cached target
   const gitHeadWatcher = vscode.workspace.createFileSystemWatcher("**/.git/HEAD");
-  gitHeadWatcher.onDidChange(() => debouncedUpdateAll());
+  gitHeadWatcher.onDidChange(() => {
+    resolvedTargetBranch = undefined;
+    debouncedUpdateAll();
+  });
   context.subscriptions.push(gitHeadWatcher);
 
   // React to config changes
@@ -87,6 +102,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((e) => {
       if (e.affectsConfiguration("highlightdiff")) {
         enabled = getConfig().get<boolean>("enabled", true);
+        resolvedTargetBranch = undefined;
         decorationManager.refreshColors();
         if (enabled) {
           updateAllVisibleEditors();

@@ -86,6 +86,65 @@ function formatRelativeDate(timestamp: number): string {
   return `${Math.floor(diff / 31536000)}y ago`;
 }
 
+export async function detectTargetBranch(workspaceRoot: string): Promise<string> {
+  // 1. Try gh pr view to get the PR base branch
+  try {
+    const { stdout } = await runCommand(
+      "gh",
+      ["pr", "view", "--json", "baseRefName", "--jq", ".baseRefName"],
+      workspaceRoot
+    );
+    const branch = stdout.trim();
+    if (branch) return branch;
+  } catch {
+    // gh not installed or no PR exists
+  }
+
+  // 2. Try upstream tracking branch
+  try {
+    const { stdout } = await runGit(
+      ["rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}"],
+      workspaceRoot
+    );
+    const upstream = stdout.trim();
+    if (upstream) {
+      // Extract the branch name from e.g. "origin/main"
+      const parts = upstream.split("/");
+      return parts.length > 1 ? parts.slice(1).join("/") : upstream;
+    }
+  } catch {
+    // No upstream set
+  }
+
+  // 3. Try common default branches
+  for (const candidate of ["main", "master"]) {
+    try {
+      await runGit(["rev-parse", "--verify", candidate], workspaceRoot);
+      return candidate;
+    } catch {
+      // Branch doesn't exist
+    }
+  }
+
+  return "main";
+}
+
+function runCommand(
+  cmd: string,
+  args: string[],
+  cwd: string
+): Promise<{ stdout: string; stderr: string }> {
+  return new Promise((resolve, reject) => {
+    execFile(cmd, args, { cwd, maxBuffer: 10 * 1024 * 1024, timeout: 5000 }, (err, stdout, stderr) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({ stdout, stderr });
+      }
+    });
+  });
+}
+
 export async function getChangedLines(
   workspaceRoot: string,
   filePath: string,

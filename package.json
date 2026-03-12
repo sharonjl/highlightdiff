@@ -2,7 +2,7 @@
   "name": "highlightdiff",
   "displayName": "Highlight Diff",
   "description": "Highlights lines changed in the current branch compared to a target branch",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "highlightdiff",
   "engines": {
     "vscode": "^1.75.0"
@@ -30,23 +30,29 @@
       "properties": {
         "highlightdiff.targetBranch": {
           "type": "string",
-          "default": "main",
-          "description": "The branch to diff against"
+          "default": "auto",
+          "description": "The branch to diff against. Set to 'auto' to detect from PR or remote tracking."
         },
         "highlightdiff.addedColor": {
           "type": "string",
           "default": "rgba(0, 255, 0, 0.1)",
-          "description": "Background color for added/modified lines"
+          "description": "Color for added/modified lines"
         },
         "highlightdiff.deletedColor": {
           "type": "string",
           "default": "rgba(255, 0, 0, 0.2)",
-          "description": "Indicator color for deleted lines"
+          "description": "Color for deleted lines"
         },
         "highlightdiff.enabled": {
           "type": "boolean",
           "default": true,
           "description": "Whether highlights are active"
+        },
+        "highlightdiff.decorationStyle": {
+          "type": "string",
+          "default": "background",
+          "enum": ["background", "gutter", "border", "overview-ruler"],
+          "description": "How changed lines are visually indicated"
         }
       }
     }

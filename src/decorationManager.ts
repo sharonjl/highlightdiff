@@ -1,39 +1,74 @@
 import * as vscode from "vscode";
 import { LineDiff, ChangeType } from "./types";
 
+type DecorationStyle = "background" | "gutter" | "border" | "overview-ruler";
+
 export class DecorationManager {
   private addedDecoration: vscode.TextEditorDecorationType;
   private deletedDecoration: vscode.TextEditorDecorationType;
 
   constructor() {
     const config = vscode.workspace.getConfiguration("highlightdiff");
-    this.addedDecoration = this.createAddedDecoration(config);
-    this.deletedDecoration = this.createDeletedDecoration(config);
+    const style = config.get<DecorationStyle>("decorationStyle", "background");
+    const addedColor = config.get<string>("addedColor", "rgba(0, 255, 0, 0.1)");
+    const deletedColor = config.get<string>("deletedColor", "rgba(255, 0, 0, 0.2)");
+    this.addedDecoration = this.createDecoration(style, addedColor, "added");
+    this.deletedDecoration = this.createDecoration(style, deletedColor, "deleted");
   }
 
-  private createAddedDecoration(
-    config: vscode.WorkspaceConfiguration
+  private createDecoration(
+    style: DecorationStyle,
+    color: string,
+    kind: "added" | "deleted"
   ): vscode.TextEditorDecorationType {
-    return vscode.window.createTextEditorDecorationType({
-      backgroundColor: config.get<string>("addedColor", "rgba(0, 255, 0, 0.1)"),
-      isWholeLine: true,
-      overviewRulerColor: "rgba(0, 200, 0, 0.6)",
-      overviewRulerLane: vscode.OverviewRulerLane.Left,
-    });
-  }
+    const rulerColor = kind === "added" ? "rgba(0, 200, 0, 0.6)" : "rgba(200, 0, 0, 0.6)";
 
-  private createDeletedDecoration(
-    config: vscode.WorkspaceConfiguration
-  ): vscode.TextEditorDecorationType {
-    const color = config.get<string>("deletedColor", "rgba(255, 0, 0, 0.2)");
-    return vscode.window.createTextEditorDecorationType({
-      borderWidth: "0 0 2px 0",
-      borderStyle: "solid",
-      borderColor: color,
-      isWholeLine: true,
-      overviewRulerColor: "rgba(200, 0, 0, 0.6)",
-      overviewRulerLane: vscode.OverviewRulerLane.Left,
-    });
+    switch (style) {
+      case "background":
+        if (kind === "deleted") {
+          return vscode.window.createTextEditorDecorationType({
+            borderWidth: "0 0 2px 0",
+            borderStyle: "solid",
+            borderColor: color,
+            isWholeLine: true,
+            overviewRulerColor: rulerColor,
+            overviewRulerLane: vscode.OverviewRulerLane.Left,
+          });
+        }
+        return vscode.window.createTextEditorDecorationType({
+          backgroundColor: color,
+          isWholeLine: true,
+          overviewRulerColor: rulerColor,
+          overviewRulerLane: vscode.OverviewRulerLane.Left,
+        });
+
+      case "gutter":
+        return vscode.window.createTextEditorDecorationType({
+          gutterIconPath: undefined,
+          gutterIconSize: "contain",
+          borderWidth: "0 0 0 3px",
+          borderStyle: "solid",
+          borderColor: color,
+          overviewRulerColor: rulerColor,
+          overviewRulerLane: vscode.OverviewRulerLane.Left,
+        });
+
+      case "border":
+        return vscode.window.createTextEditorDecorationType({
+          borderWidth: kind === "deleted" ? "0 0 2px 0" : "1px",
+          borderStyle: kind === "deleted" ? "dashed" : "solid",
+          borderColor: color,
+          isWholeLine: true,
+          overviewRulerColor: rulerColor,
+          overviewRulerLane: vscode.OverviewRulerLane.Left,
+        });
+
+      case "overview-ruler":
+        return vscode.window.createTextEditorDecorationType({
+          overviewRulerColor: rulerColor,
+          overviewRulerLane: vscode.OverviewRulerLane.Left,
+        });
+    }
   }
 
   applyDecorations(editor: vscode.TextEditor, diffs: LineDiff[]): void {
@@ -64,8 +99,11 @@ export class DecorationManager {
     this.addedDecoration.dispose();
     this.deletedDecoration.dispose();
     const config = vscode.workspace.getConfiguration("highlightdiff");
-    this.addedDecoration = this.createAddedDecoration(config);
-    this.deletedDecoration = this.createDeletedDecoration(config);
+    const style = config.get<DecorationStyle>("decorationStyle", "background");
+    const addedColor = config.get<string>("addedColor", "rgba(0, 255, 0, 0.1)");
+    const deletedColor = config.get<string>("deletedColor", "rgba(255, 0, 0, 0.2)");
+    this.addedDecoration = this.createDecoration(style, addedColor, "added");
+    this.deletedDecoration = this.createDecoration(style, deletedColor, "deleted");
   }
 
   dispose(): void {
