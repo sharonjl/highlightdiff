@@ -1,0 +1,64 @@
+{
+  "name": "highlightdiff",
+  "displayName": "Highlight Diff",
+  "description": "Highlights lines changed in the current branch compared to a target branch",
+  "version": "0.1.0",
+  "publisher": "highlightdiff",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "highlightdiff.toggle",
+        "title": "Highlight Diff: Toggle"
+      },
+      {
+        "command": "highlightdiff.setTargetBranch",
+        "title": "Highlight Diff: Set Target Branch"
+      },
+      {
+        "command": "highlightdiff.refresh",
+        "title": "Highlight Diff: Refresh"
+      }
+    ],
+    "configuration": {
+      "title": "Highlight Diff",
+      "properties": {
+        "highlightdiff.targetBranch": {
+          "type": "string",
+          "default": "main",
+          "description": "The branch to diff against"
+        },
+        "highlightdiff.addedColor": {
+          "type": "string",
+          "default": "rgba(0, 255, 0, 0.1)",
+          "description": "Background color for added/modified lines"
+        },
+        "highlightdiff.deletedColor": {
+          "type": "string",
+          "default": "rgba(255, 0, 0, 0.2)",
+          "description": "Indicator color for deleted lines"
+        },
+        "highlightdiff.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether highlights are active"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.75.0",
+    "@types/node": "^18.0.0",
+    "typescript": "^5.0.0"
+  }
+}
