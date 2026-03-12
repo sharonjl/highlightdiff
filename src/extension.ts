@@ -1,9 +1,11 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { DecorationManager } from "./decorationManager";
+import { BlameManager } from "./blameManager";
 import { getChangedLines, listBranches } from "./gitDiff";
 
 let decorationManager: DecorationManager;
+let blameManager: BlameManager;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 let enabled = true;
 
@@ -48,6 +50,8 @@ function debouncedUpdateAll(): void {
 
 export function activate(context: vscode.ExtensionContext): void {
   decorationManager = new DecorationManager();
+  blameManager = new BlameManager();
+  blameManager.start(context);
   enabled = getConfig().get<boolean>("enabled", true);
 
   // Update on active editor change
@@ -146,6 +150,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push({ dispose: () => decorationManager.dispose() });
+  context.subscriptions.push({ dispose: () => blameManager.dispose() });
 
   // Initial decoration pass
   if (vscode.window.activeTextEditor) {

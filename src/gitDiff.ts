@@ -1,5 +1,5 @@
 import { execFile } from "child_process";
-import { LineDiff, ChangeType } from "./types";
+import { LineDiff, ChangeType, BlameInfo } from "./types";
 
 export function runGit(
   args: string[],
@@ -31,13 +31,67 @@ export async function listBranches(workspaceRoot: string): Promise<string[]> {
   }
 }
 
+export async function getBlame(
+  workspaceRoot: string,
+  filePath: string,
+  lineNumber: number
+): Promise<BlameInfo | undefined> {
+  try {
+    const line1 = lineNumber + 1; // git blame is 1-based
+    const { stdout } = await runGit(
+      ["blame", "--porcelain", `-L${line1},${line1}`, "--", filePath],
+      workspaceRoot
+    );
+
+    let author = "";
+    let date = "";
+    let summary = "";
+
+    for (const line of stdout.split("\n")) {
+      if (line.startsWith("author ")) {
+        author = line.substring(7);
+      } else if (line.startsWith("author-time ")) {
+        const timestamp = parseInt(line.substring(12), 10);
+        date = formatRelativeDate(timestamp);
+      } else if (line.startsWith("summary ")) {
+        summary = line.substring(8);
+      }
+    }
+
+    if (!author) {
+      return undefined;
+    }
+
+    // Uncommitted changes show as "Not Committed Yet"
+    if (author === "Not Committed Yet") {
+      return { author: "You", date: "uncommitted", summary: "Uncommitted changes" };
+    }
+
+    return { author, date, summary };
+  } catch {
+    return undefined;
+  }
+}
+
+function formatRelativeDate(timestamp: number): string {
+  const now = Date.now() / 1000;
+  const diff = now - timestamp;
+
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 604800)}w ago`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)}mo ago`;
+  return `${Math.floor(diff / 31536000)}y ago`;
+}
+
 export async function getChangedLines(
   workspaceRoot: string,
   filePath: string,
   targetBranch: string
 ): Promise<LineDiff[]> {
   try {
-    // Use merge-base to diff only what the branch introduced
     const { stdout: mergeBase } = await runGit(
       ["merge-base", targetBranch, "HEAD"],
       workspaceRoot
@@ -51,7 +105,6 @@ export async function getChangedLines(
 
     return parseDiff(stdout);
   } catch {
-    // Not a git repo, target branch doesn't exist, file is untracked, etc.
     return [];
   }
 }
@@ -62,51 +115,20 @@ function parseDiff(diffOutput: string): LineDiff[] {
   const diffs: LineDiff[] = [];
   const lines = diffOutput.split("\n");
 
-  let i = 0;
-  while (i < lines.length) {
-    const hunkMatch = hunkHeaderRe.exec(lines[i]);
-    if (!hunkMatch) {
-      i++;
-      continue;
-    }
+  for (const line of lines) {
+    const hunkMatch = hunkHeaderRe.exec(line);
+    if (!hunkMatch) continue;
 
-    const oldCount = parseInt(hunkMatch[2] ?? "1", 10);
-    const newStart = parseInt(hunkMatch[3], 10) - 1; // 0-based
+    const newStart = parseInt(hunkMatch[3], 10) - 1;
     const newCount = parseInt(hunkMatch[4] ?? "1", 10);
-    i++;
 
-    // Collect removed lines (prefixed with -)
-    const oldLines: string[] = [];
-    for (let j = 0; j < oldCount && i < lines.length; j++, i++) {
-      if (lines[i].startsWith("-")) {
-        oldLines.push(lines[i].substring(1));
-      }
-    }
-
-    // Skip added lines (prefixed with +)
-    let addedCount = 0;
-    while (addedCount < newCount && i < lines.length && lines[i].startsWith("+")) {
-      addedCount++;
-      i++;
-    }
-
-    // Pure deletion — no new lines
     if (newCount === 0) {
-      diffs.push({
-        lineNumber: newStart,
-        changeType: ChangeType.Deleted,
-        oldLines,
-      });
+      diffs.push({ lineNumber: newStart, changeType: ChangeType.Deleted });
     }
 
-    // Added/modified lines — attach old lines to the first one for hover
     if (newCount > 0) {
       for (let j = 0; j < newCount; j++) {
-        diffs.push({
-          lineNumber: newStart + j,
-          changeType: ChangeType.Added,
-          oldLines: j === 0 ? oldLines : undefined,
-        });
+        diffs.push({ lineNumber: newStart + j, changeType: ChangeType.Added });
       }
     }
   }

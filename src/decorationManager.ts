@@ -43,39 +43,16 @@ export class DecorationManager {
     for (const diff of diffs) {
       const line = Math.min(diff.lineNumber, editor.document.lineCount - 1);
       const range = new vscode.Range(line, 0, line, 0);
-      const hoverMessage = this.buildHoverMessage(diff);
 
       if (diff.changeType === ChangeType.Added) {
-        addedRanges.push({ range, hoverMessage });
+        addedRanges.push({ range });
       } else {
-        deletedRanges.push({ range, hoverMessage });
+        deletedRanges.push({ range });
       }
     }
 
     editor.setDecorations(this.addedDecoration, addedRanges);
     editor.setDecorations(this.deletedDecoration, deletedRanges);
-  }
-
-  private buildHoverMessage(diff: LineDiff): vscode.MarkdownString | undefined {
-    if (!diff.oldLines || diff.oldLines.length === 0) {
-      if (diff.changeType === ChangeType.Added) {
-        return new vscode.MarkdownString("**Added** — new line");
-      }
-      return undefined;
-    }
-
-    const escaped = diff.oldLines
-      .map((l) => l.replace(/\\/g, "\\\\").replace(/`/g, "\\`"))
-      .join("\n");
-
-    const label =
-      diff.changeType === ChangeType.Deleted ? "**Deleted:**" : "**Previous:**";
-
-    const md = new vscode.MarkdownString(
-      `${label}\n\`\`\`\n${escaped}\n\`\`\``
-    );
-    md.isTrusted = true;
-    return md;
   }
 
   clearDecorations(editor: vscode.TextEditor): void {
