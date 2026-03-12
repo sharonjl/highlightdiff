@@ -14,3 +14,8 @@ export interface BlameInfo {
   date: string;
   summary: string;
 }
+
+export interface ChangedFileInfo {
+  filePath: string;
+  status: "A" | "M" | "D" | "R" | string;
+}

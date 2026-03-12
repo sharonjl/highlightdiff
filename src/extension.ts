@@ -2,10 +2,12 @@ import * as vscode from "vscode";
 import * as path from "path";
 import { DecorationManager } from "./decorationManager";
 import { BlameManager } from "./blameManager";
+import { ChangedFilesProvider } from "./changedFilesProvider";
 import { getChangedLines, listBranches, detectTargetBranch } from "./gitDiff";
 
 let decorationManager: DecorationManager;
 let blameManager: BlameManager;
+let changedFilesProvider: ChangedFilesProvider;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 let enabled = true;
 let resolvedTargetBranch: string | undefined;
@@ -51,6 +53,7 @@ function updateAllVisibleEditors(): void {
   for (const editor of vscode.window.visibleTextEditors) {
     updateDecorations(editor);
   }
+  changedFilesProvider?.refresh();
 }
 
 function debouncedUpdateAll(): void {
@@ -65,6 +68,17 @@ export function activate(context: vscode.ExtensionContext): void {
   blameManager = new BlameManager();
   blameManager.start(context);
   enabled = getConfig().get<boolean>("enabled", true);
+
+  // Changed files tree view in Source Control
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  changedFilesProvider = new ChangedFilesProvider(async () => {
+    if (!workspaceRoot) return "main";
+    return resolveTargetBranch(workspaceRoot);
+  });
+  context.subscriptions.push(
+    vscode.window.registerTreeDataProvider("highlightdiff.changedFiles", changedFilesProvider)
+  );
+  context.subscriptions.push({ dispose: () => changedFilesProvider.dispose() });
 
   // Update on active editor change
   context.subscriptions.push(

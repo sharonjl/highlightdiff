@@ -12,7 +12,7 @@ export class BlameManager {
 
   private createDecoration(): vscode.TextEditorDecorationType {
     const config = vscode.workspace.getConfiguration("highlightdiff");
-    const fontStyle = config.get<string>("blameFontStyle", "italic");
+    const fontStyle = config.get<string>("blameFontStyle", "normal");
     const blameColor = config.get<string>("blameColor", "");
 
     return vscode.window.createTextEditorDecorationType({

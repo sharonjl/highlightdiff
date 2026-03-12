@@ -2,7 +2,7 @@
   "name": "highlightdiff",
   "displayName": "Highlight Diff",
   "description": "Highlights lines changed in the current branch compared to a target branch",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "publisher": "highlightdiff",
   "engines": {
     "vscode": "^1.75.0"
@@ -25,6 +25,14 @@
         "title": "Highlight Diff: Refresh"
       }
     ],
+    "views": {
+      "scm": [
+        {
+          "id": "highlightdiff.changedFiles",
+          "name": "Branch Changes"
+        }
+      ]
+    },
     "configuration": {
       "title": "Highlight Diff",
       "properties": {
@@ -58,7 +66,7 @@
         },
         "highlightdiff.blameFontStyle": {
           "type": "string",
-          "default": "italic",
+          "default": "normal",
           "enum": ["italic", "normal"],
           "description": "Font style for inline git blame text"
         },

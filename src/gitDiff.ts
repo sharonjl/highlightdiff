@@ -1,5 +1,5 @@
 import { execFile } from "child_process";
-import { LineDiff, ChangeType, BlameInfo } from "./types";
+import { LineDiff, ChangeType, BlameInfo, ChangedFileInfo } from "./types";
 
 export function runGit(
   args: string[],
@@ -163,6 +163,37 @@ export async function getChangedLines(
     );
 
     return parseDiff(stdout);
+  } catch {
+    return [];
+  }
+}
+
+export async function getChangedFiles(
+  workspaceRoot: string,
+  targetBranch: string
+): Promise<ChangedFileInfo[]> {
+  try {
+    const { stdout: mergeBase } = await runGit(
+      ["merge-base", targetBranch, "HEAD"],
+      workspaceRoot
+    );
+    const base = mergeBase.trim();
+
+    const { stdout } = await runGit(
+      ["diff", "--name-status", base],
+      workspaceRoot
+    );
+
+    return stdout
+      .split("\n")
+      .filter((line) => line.trim().length > 0)
+      .map((line) => {
+        const [status, ...rest] = line.split("\t");
+        return {
+          status: status.charAt(0) as ChangedFileInfo["status"],
+          filePath: rest.join("\t"),
+        };
+      });
   } catch {
     return [];
   }
