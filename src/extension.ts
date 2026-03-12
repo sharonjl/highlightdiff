@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import * as path from "path";
 import { DecorationManager } from "./decorationManager";
-import { getChangedLines } from "./gitDiff";
+import { getChangedLines, listBranches } from "./gitDiff";
 
 let decorationManager: DecorationManager;
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
@@ -108,10 +108,31 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("highlightdiff.setTargetBranch", async () => {
       const config = getConfig();
       const current = config.get<string>("targetBranch", "main");
-      const value = await vscode.window.showInputBox({
-        prompt: "Target branch to diff against",
-        value: current,
-      });
+
+      // Find workspace root for branch listing
+      const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+      const branches = workspaceFolder
+        ? await listBranches(workspaceFolder.uri.fsPath)
+        : [];
+
+      let value: string | undefined;
+      if (branches.length > 0) {
+        const items = branches.map((b) => ({
+          label: b,
+          description: b === current ? "(current target)" : undefined,
+        }));
+        const picked = await vscode.window.showQuickPick(items, {
+          placeHolder: `Current target: ${current}`,
+          matchOnDescription: true,
+        });
+        value = picked?.label;
+      } else {
+        value = await vscode.window.showInputBox({
+          prompt: "Target branch to diff against",
+          value: current,
+        });
+      }
+
       if (value !== undefined) {
         await config.update("targetBranch", value, vscode.ConfigurationTarget.Workspace);
       }

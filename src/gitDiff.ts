@@ -1,7 +1,7 @@
 import { execFile } from "child_process";
 import { LineDiff, ChangeType } from "./types";
 
-function runGit(
+export function runGit(
   args: string[],
   cwd: string
 ): Promise<{ stdout: string; stderr: string }> {
@@ -14,6 +14,21 @@ function runGit(
       }
     });
   });
+}
+
+export async function listBranches(workspaceRoot: string): Promise<string[]> {
+  try {
+    const { stdout } = await runGit(
+      ["branch", "-a", "--format=%(refname:short)"],
+      workspaceRoot
+    );
+    return stdout
+      .split("\n")
+      .map((b) => b.trim())
+      .filter((b) => b.length > 0);
+  } catch {
+    return [];
+  }
 }
 
 export async function getChangedLines(
@@ -47,34 +62,52 @@ function parseDiff(diffOutput: string): LineDiff[] {
   const diffs: LineDiff[] = [];
   const lines = diffOutput.split("\n");
 
-  let currentLine = 0;
-
-  for (const line of lines) {
-    const hunkMatch = hunkHeaderRe.exec(line);
-    if (hunkMatch) {
-      // +start is 1-based in diff output
-      currentLine = parseInt(hunkMatch[3], 10) - 1; // convert to 0-based
-      const oldCount = parseInt(hunkMatch[2] ?? "1", 10);
-      const newCount = parseInt(hunkMatch[4] ?? "1", 10);
-
-      // Pure deletion (new side has 0 lines) — mark the line after the deletion point
-      if (newCount === 0) {
-        // currentLine is now pointing at the line before which content was deleted
-        // In --unified=0 format with +start,0, start is the line AFTER which deletions happened
-        diffs.push({ lineNumber: currentLine, changeType: ChangeType.Deleted });
-      }
-
-      // Pure addition or modification — mark each added line
-      if (newCount > 0) {
-        for (let i = 0; i < newCount; i++) {
-          diffs.push({
-            lineNumber: currentLine + i,
-            changeType: ChangeType.Added,
-          });
-        }
-      }
-
+  let i = 0;
+  while (i < lines.length) {
+    const hunkMatch = hunkHeaderRe.exec(lines[i]);
+    if (!hunkMatch) {
+      i++;
       continue;
+    }
+
+    const oldCount = parseInt(hunkMatch[2] ?? "1", 10);
+    const newStart = parseInt(hunkMatch[3], 10) - 1; // 0-based
+    const newCount = parseInt(hunkMatch[4] ?? "1", 10);
+    i++;
+
+    // Collect removed lines (prefixed with -)
+    const oldLines: string[] = [];
+    for (let j = 0; j < oldCount && i < lines.length; j++, i++) {
+      if (lines[i].startsWith("-")) {
+        oldLines.push(lines[i].substring(1));
+      }
+    }
+
+    // Skip added lines (prefixed with +)
+    let addedCount = 0;
+    while (addedCount < newCount && i < lines.length && lines[i].startsWith("+")) {
+      addedCount++;
+      i++;
+    }
+
+    // Pure deletion — no new lines
+    if (newCount === 0) {
+      diffs.push({
+        lineNumber: newStart,
+        changeType: ChangeType.Deleted,
+        oldLines,
+      });
+    }
+
+    // Added/modified lines — attach old lines to the first one for hover
+    if (newCount > 0) {
+      for (let j = 0; j < newCount; j++) {
+        diffs.push({
+          lineNumber: newStart + j,
+          changeType: ChangeType.Added,
+          oldLines: j === 0 ? oldLines : undefined,
+        });
+      }
     }
   }
 
