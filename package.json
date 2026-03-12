@@ -2,7 +2,7 @@
   "name": "highlightdiff",
   "displayName": "Highlight Diff",
   "description": "Highlights lines changed in the current branch compared to a target branch",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "publisher": "highlightdiff",
   "engines": {
     "vscode": "^1.75.0"
@@ -23,8 +23,32 @@
       {
         "command": "highlightdiff.refresh",
         "title": "Highlight Diff: Refresh"
+      },
+      {
+        "command": "highlightdiff.viewAsTree",
+        "title": "View as Tree",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "highlightdiff.viewAsList",
+        "title": "View as List",
+        "icon": "$(list-flat)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "highlightdiff.viewAsTree",
+          "when": "view == highlightdiff.changedFiles && !highlightdiff.treeView",
+          "group": "navigation"
+        },
+        {
+          "command": "highlightdiff.viewAsList",
+          "when": "view == highlightdiff.changedFiles && highlightdiff.treeView",
+          "group": "navigation"
+        }
+      ]
+    },
     "views": {
       "scm": [
         {

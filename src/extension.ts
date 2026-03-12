@@ -179,6 +179,18 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  context.subscriptions.push(
+    vscode.commands.registerCommand("highlightdiff.viewAsTree", () => {
+      changedFilesProvider.setTreeView(true);
+    })
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("highlightdiff.viewAsList", () => {
+      changedFilesProvider.setTreeView(false);
+    })
+  );
+
   context.subscriptions.push({ dispose: () => decorationManager.dispose() });
   context.subscriptions.push({ dispose: () => blameManager.dispose() });
 
