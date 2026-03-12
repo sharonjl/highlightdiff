@@ -10,8 +10,8 @@ export class DecorationManager {
   constructor() {
     const config = vscode.workspace.getConfiguration("highlightdiff");
     const style = config.get<DecorationStyle>("decorationStyle", "background");
-    const addedColor = config.get<string>("addedColor", "rgba(0, 255, 0, 0.1)");
-    const deletedColor = config.get<string>("deletedColor", "rgba(255, 0, 0, 0.2)");
+    const addedColor = config.get<string>("addedColor", "#00ff001a");
+    const deletedColor = config.get<string>("deletedColor", "#ff000033");
     this.addedDecoration = this.createDecoration(style, addedColor, "added");
     this.deletedDecoration = this.createDecoration(style, deletedColor, "deleted");
   }
@@ -33,6 +33,7 @@ export class DecorationManager {
             isWholeLine: true,
             overviewRulerColor: rulerColor,
             overviewRulerLane: vscode.OverviewRulerLane.Left,
+            gutterIconSize: "contain",
           });
         }
         return vscode.window.createTextEditorDecorationType({
@@ -40,13 +41,16 @@ export class DecorationManager {
           isWholeLine: true,
           overviewRulerColor: rulerColor,
           overviewRulerLane: vscode.OverviewRulerLane.Left,
+          // Extend color into the gutter via a left border
+          borderWidth: "0 0 0 4px",
+          borderStyle: "solid",
+          borderColor: color,
+          gutterIconSize: "contain",
         });
 
       case "gutter":
         return vscode.window.createTextEditorDecorationType({
-          gutterIconPath: undefined,
-          gutterIconSize: "contain",
-          borderWidth: "0 0 0 3px",
+          borderWidth: "0 0 0 4px",
           borderStyle: "solid",
           borderColor: color,
           overviewRulerColor: rulerColor,
@@ -100,8 +104,8 @@ export class DecorationManager {
     this.deletedDecoration.dispose();
     const config = vscode.workspace.getConfiguration("highlightdiff");
     const style = config.get<DecorationStyle>("decorationStyle", "background");
-    const addedColor = config.get<string>("addedColor", "rgba(0, 255, 0, 0.1)");
-    const deletedColor = config.get<string>("deletedColor", "rgba(255, 0, 0, 0.2)");
+    const addedColor = config.get<string>("addedColor", "#00ff001a");
+    const deletedColor = config.get<string>("deletedColor", "#ff000033");
     this.addedDecoration = this.createDecoration(style, addedColor, "added");
     this.deletedDecoration = this.createDecoration(style, deletedColor, "deleted");
   }

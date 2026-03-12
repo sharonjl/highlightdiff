@@ -2,7 +2,7 @@
   "name": "highlightdiff",
   "displayName": "Highlight Diff",
   "description": "Highlights lines changed in the current branch compared to a target branch",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "highlightdiff",
   "engines": {
     "vscode": "^1.75.0"
@@ -35,12 +35,14 @@
         },
         "highlightdiff.addedColor": {
           "type": "string",
-          "default": "rgba(0, 255, 0, 0.1)",
+          "format": "color",
+          "default": "#00ff001a",
           "description": "Color for added/modified lines"
         },
         "highlightdiff.deletedColor": {
           "type": "string",
-          "default": "rgba(255, 0, 0, 0.2)",
+          "format": "color",
+          "default": "#ff000033",
           "description": "Color for deleted lines"
         },
         "highlightdiff.enabled": {
@@ -53,6 +55,18 @@
           "default": "background",
           "enum": ["background", "gutter", "border", "overview-ruler"],
           "description": "How changed lines are visually indicated"
+        },
+        "highlightdiff.blameFontStyle": {
+          "type": "string",
+          "default": "italic",
+          "enum": ["italic", "normal"],
+          "description": "Font style for inline git blame text"
+        },
+        "highlightdiff.blameColor": {
+          "type": "string",
+          "format": "color",
+          "default": "",
+          "description": "Color for inline git blame text. Leave empty to use the editor's code lens color."
         }
       }
     }

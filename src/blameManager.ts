@@ -7,10 +7,18 @@ export class BlameManager {
   private disposables: vscode.Disposable[] = [];
 
   constructor() {
-    this.decoration = vscode.window.createTextEditorDecorationType({
+    this.decoration = this.createDecoration();
+  }
+
+  private createDecoration(): vscode.TextEditorDecorationType {
+    const config = vscode.workspace.getConfiguration("highlightdiff");
+    const fontStyle = config.get<string>("blameFontStyle", "italic");
+    const blameColor = config.get<string>("blameColor", "");
+
+    return vscode.window.createTextEditorDecorationType({
       after: {
-        color: new vscode.ThemeColor("editorCodeLens.foreground"),
-        fontStyle: "italic",
+        color: blameColor || new vscode.ThemeColor("editorCodeLens.foreground"),
+        fontStyle,
         margin: "0 0 0 3em",
       },
     });
@@ -31,7 +39,23 @@ export class BlameManager {
       })
     );
 
-    // Show blame for current cursor position immediately
+    context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration((e) => {
+        if (e.affectsConfiguration("highlightdiff.blameFontStyle") ||
+            e.affectsConfiguration("highlightdiff.blameColor")) {
+          this.refreshDecoration();
+        }
+      })
+    );
+
+    if (vscode.window.activeTextEditor) {
+      this.updateBlame(vscode.window.activeTextEditor);
+    }
+  }
+
+  private refreshDecoration(): void {
+    this.decoration.dispose();
+    this.decoration = this.createDecoration();
     if (vscode.window.activeTextEditor) {
       this.updateBlame(vscode.window.activeTextEditor);
     }
