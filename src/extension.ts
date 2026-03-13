@@ -37,6 +37,12 @@ async function updateDecorations(editor: vscode.TextEditor): Promise<void> {
     return;
   }
 
+  // Skip diff editors — VS Code's built-in diff view already highlights changes
+  const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+  if (tab?.input instanceof vscode.TabInputTextDiff) {
+    return;
+  }
+
   const workspaceFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
   if (!workspaceFolder) {
     return;
