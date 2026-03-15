@@ -109,6 +109,12 @@ export function activate(context: vscode.ExtensionContext): void {
     })
   );
 
+  // Watch for file creates/deletes/renames to refresh changed files view
+  const fileWatcher = vscode.workspace.createFileSystemWatcher("**/*");
+  fileWatcher.onDidCreate(() => changedFilesProvider?.refresh());
+  fileWatcher.onDidDelete(() => changedFilesProvider?.refresh());
+  context.subscriptions.push(fileWatcher);
+
   // Watch .git/HEAD for branch switches — invalidate cached target
   const gitHeadWatcher = vscode.workspace.createFileSystemWatcher("**/.git/HEAD");
   gitHeadWatcher.onDidChange(() => {
