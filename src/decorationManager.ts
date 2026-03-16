@@ -76,22 +76,29 @@ export class DecorationManager {
   }
 
   applyDecorations(editor: vscode.TextEditor, diffs: LineDiff[]): void {
-    const addedRanges: vscode.DecorationOptions[] = [];
-    const deletedRanges: vscode.DecorationOptions[] = [];
+    const addedLines = new Set<number>();
+    const deletedLines = new Set<number>();
 
     for (const diff of diffs) {
       const line = Math.min(diff.lineNumber, editor.document.lineCount - 1);
-      const range = new vscode.Range(line, 0, line, 0);
-
       if (diff.changeType === ChangeType.Added) {
-        addedRanges.push({ range });
+        addedLines.add(line);
       } else {
-        deletedRanges.push({ range });
+        deletedLines.add(line);
       }
     }
 
-    editor.setDecorations(this.addedDecoration, addedRanges);
-    editor.setDecorations(this.deletedDecoration, deletedRanges);
+    // Remove deleted markers on lines that are also added (modification takes precedence)
+    for (const line of addedLines) {
+      deletedLines.delete(line);
+    }
+
+    const toOptions = (line: number) => ({
+      range: new vscode.Range(line, 0, line, 0),
+    });
+
+    editor.setDecorations(this.addedDecoration, [...addedLines].map(toOptions));
+    editor.setDecorations(this.deletedDecoration, [...deletedLines].map(toOptions));
   }
 
   clearDecorations(editor: vscode.TextEditor): void {
