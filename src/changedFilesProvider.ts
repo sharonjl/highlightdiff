@@ -11,7 +11,7 @@ export class ChangedFilesProvider implements vscode.TreeDataProvider<TreeNode> {
 
   private workspaceRoot: string | undefined;
   private resolveTarget: () => Promise<string>;
-  private treeView = false;
+  private treeView = true;
 
   constructor(resolveTarget: () => Promise<string>) {
     this.workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;

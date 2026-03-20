@@ -81,6 +81,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (!workspaceRoot) return "main";
     return resolveTargetBranch(workspaceRoot);
   });
+  vscode.commands.executeCommand("setContext", "highlightdiff.treeView", true);
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("highlightdiff.changedFiles", changedFilesProvider)
   );

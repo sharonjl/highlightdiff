@@ -145,14 +145,27 @@ function runCommand(
   });
 }
 
+async function resolveRef(workspaceRoot: string, targetBranch: string): Promise<string> {
+  // Prefer the remote tracking ref (e.g. origin/main) so the merge-base
+  // stays current even when the local branch is stale or missing.
+  const remoteRef = `origin/${targetBranch}`;
+  try {
+    await runGit(["rev-parse", "--verify", remoteRef], workspaceRoot);
+    return remoteRef;
+  } catch {
+    return targetBranch;
+  }
+}
+
 export async function getChangedLines(
   workspaceRoot: string,
   filePath: string,
   targetBranch: string
 ): Promise<LineDiff[]> {
   try {
+    const ref = await resolveRef(workspaceRoot, targetBranch);
     const { stdout: mergeBase } = await runGit(
-      ["merge-base", targetBranch, "HEAD"],
+      ["merge-base", ref, "HEAD"],
       workspaceRoot
     );
     const base = mergeBase.trim();
@@ -173,8 +186,9 @@ export async function getChangedFiles(
   targetBranch: string
 ): Promise<ChangedFileInfo[]> {
   try {
+    const ref = await resolveRef(workspaceRoot, targetBranch);
     const { stdout: mergeBase } = await runGit(
-      ["merge-base", targetBranch, "HEAD"],
+      ["merge-base", ref, "HEAD"],
       workspaceRoot
     );
     const base = mergeBase.trim();
