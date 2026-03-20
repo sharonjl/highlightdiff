@@ -158,7 +158,7 @@ export async function getChangedLines(
     const base = mergeBase.trim();
 
     const { stdout } = await runGit(
-      ["diff", base, "--unified=0", "--", filePath],
+      ["diff", base, "HEAD", "--unified=0", "--", filePath],
       workspaceRoot
     );
 
@@ -180,7 +180,7 @@ export async function getChangedFiles(
     const base = mergeBase.trim();
 
     const { stdout } = await runGit(
-      ["diff", "--name-status", base],
+      ["diff", "--name-status", base, "HEAD"],
       workspaceRoot
     );
 
